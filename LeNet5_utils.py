@@ -9,6 +9,8 @@ Created on Tue Nov 15 11:57:31 2022
 #Contains utils: training function + saveModel
 import torch
 from torch.autograd import Variable
+import matplotlib.pyplot as plt
+import random
 
 def saveModel(file_path, model):
     torch.save(model.state_dict(), file_path)
@@ -23,7 +25,6 @@ def train_model(model, train_loader, test_loader,
 
     # Convert and send model parameters and buffers to GPU 
     model.to(device)
-    #print("Here 1?\n")
 
     best_accuracy = 0.0
 
@@ -36,15 +37,12 @@ def train_model(model, train_loader, test_loader,
         
             #Data send to device + requires_grad=True
             images, labels = Variable(images.to(device)), Variable(labels.to(device))
-            #print("Here 2?\n")
 
             #Zero the gradient 
             optimizer.zero_grad()
             #Predictions 
-            #print("Here 3?\n")
             labels_hat = model(images)
             #Loss
-            #print("Here 4?\n")
             epoch_loss = criterion(labels_hat, labels)
             #Upgrade the gradients (backpropagate) and the optimizer
             epoch_loss.backward()
@@ -54,13 +52,11 @@ def train_model(model, train_loader, test_loader,
         nof_predictions = 0.0
 
         #Evaluate the model (different than train to fasten the inference)
-        #print("Here 5?\n")
         model.eval()
 
         #Fasten the inference by setting every requires_grad to False
         with torch.no_grad():
             for data in test_loader:
-                #print("Here 6?\n")
                 images, labels = data
                 images, labels = images.to(device), labels.to(device)
                 #Run the model on the test set
@@ -68,13 +64,51 @@ def train_model(model, train_loader, test_loader,
                 #Extract the labels with the maximum probability
                 _, labels_hat = torch.max(outputs.data, 1)
                 nof_predictions += labels.size(0)
-                epoch_accuracy  += (labels_hat == labels).sum().item()
+                epoch_accuracy += (labels_hat == labels).sum().item()
         #Compute the accuracy over the test set
-        epoch_accuracy = ((100*epoch_accuracy)/nof_predictions)
+        epoch_accuracy = (100*epoch_accuracy/nof_predictions)
 
-        print('Epoch ', epoch+1,', test accuracy : {:.10f} \n'.format(epoch_accuracy))
+        print('Epoch', epoch+1,', test accuracy: {:.4f} % \n'.format(epoch_accuracy))
         
         #Save model when best accuracy is beaten
         if epoch_accuracy > best_accuracy:
             saveModel(file_path_save_model, model)
             best_accuracy = epoch_accuracy
+
+    return model
+
+
+
+def plot_inference(model, dataset, device):
+    """
+        Show the inference
+    """
+
+    plt.figure(figsize=(10,10))
+    nof_images = len(dataset.data)
+
+    for i in range(12):
+
+        #Select a random image in the dataset
+        idx = random.randrange(nof_images)
+        #Inference
+        label = dataset[idx][1]
+        image = dataset[idx][0].unsqueeze(0).to(device)
+        #print(image.shape)
+        with torch.no_grad():
+            model.eval()
+            label_hat = torch.max(model(image), 1).indices[0].item()
+            #print(torch.max(model(image), 1).indices[0].item())
+        #Sent back the image to the CPU
+        image = image.squeeze().to('cpu')
+
+        #Plot
+        ax = plt.subplot(4,3,i+1)
+        ax.set_title("label_hat = {}, label = {}".format(label_hat, label))
+        plt.imshow(image, cmap='gray_r')
+        plt.axis('off')
+    
+    plt.show()
+
+
+plot_inference(LeNet5, mnist_testset)
