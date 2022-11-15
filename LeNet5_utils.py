@@ -109,6 +109,3 @@ def plot_inference(model, dataset, device):
         plt.axis('off')
     
     plt.show()
-
-
-plot_inference(LeNet5, mnist_testset)
