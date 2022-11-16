@@ -15,16 +15,11 @@ import torch
 from torchsummary import summary
 
 
-
 if __name__ == "__main__":
 
-    #Device
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
     #Model
     nof_classes = 10
     LeNet5 = LeNet_5(nof_classes)
-    print(summary(LeNet5, (1, 28, 28)))
 
     ###Import the dataset###
     transform = transforms.Compose([transforms.CenterCrop(28),
@@ -40,17 +35,26 @@ if __name__ == "__main__":
     test_loader   = torch.utils.data.DataLoader(mnist_testset, batch_size=32, shuffle=True)
 
     #Hyper parameters
-    nof_epochs = 1
-    lr = 0.0005
+    nof_epochs = 20
+    lr = 0.00005
     optimizer = torch.optim.Adam(LeNet5.parameters(), lr)
     criterion = torch.nn.CrossEntropyLoss()
 
     #File's path to save the parameters of the model
-    file_path='/content/model_parameters.csv'
+    file_path='/content/LeNet5_params.pt'
 
     #Train
     LeNet5 = train_model(model=LeNet5, train_loader=train_loader, test_loader=test_loader, 
-                         nof_epochs=nof_epochs, optimizer=optimizer, learning_rate=lr, criterion=criterion, 
-                         file_path_save_model=file_path)
+                        nof_epochs=nof_epochs, optimizer=optimizer, learning_rate=lr, criterion=criterion, 
+                        file_path_save_model=file_path)
     
-    plot_inference(LeNet5, mnist_testset, device)
+    plot_inference(LeNet5, mnist_testset)
+    
+    layer_name = "feat_extractor_part.3.weight"
+    figsize    = (20,40)
+    model      = LeNet5
+    nof_epochs = 20
+    
+    displayConvFilers(model, 
+                      layer_name, optimizer, nof_epochs,
+                      figsize)
